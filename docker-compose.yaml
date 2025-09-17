@@ -1,0 +1,222 @@
+services:
+  # # -------------------
+  # # Postgres: database
+  # # -------------------
+  # db:
+  #   image: postgres:16
+  #   container_name: gempire-db
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_DB: gempire
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: mypostgrespassword
+  #   volumes:
+  #     - gempire:/var/lib/postgresql/data
+  #   # Optional healthcheck
+  #   # healthcheck:
+  #   #   test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #   #   interval: 5s
+  #   #   timeout: 3s
+  #   #   retries: 5
+
+  # -------------------
+  # Redis: cache & rate-limiter
+  # -------------------
+  redis:
+    image: redis:7
+    container_name: gempire-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    # Optional healthcheck
+    # healthcheck:
+    #   test: ["CMD", "redis-cli", "ping"]
+    #   interval: 5s
+    #   timeout: 3s
+    #   retries: 3
+
+  # -------------------
+  # Backend: Express / API
+  # -------------------
+  api:
+    build: ./gempire-server
+    container_name: gempire-api
+    depends_on:
+      # - db
+      - redis
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      DATABASE_URL: "postgresql://postgres.wetdequzyexrwexmzngh:Tilewa2001@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
+      JWT_SECRET: "gempireisthebestperfumerieandgeneralscentsbrand"
+      CLOUDINARY_CLOUD_NAME: "dszmrtmyk"
+      CLOUDINARY_API_KEY: "858935979931885"
+      CLOUDINARY_API_SECRET: "9yEzvn-uMH61j-3PX0iNYgRQXIY"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_TLS: "false"
+      FLW_SECRET_KEY: "FLWSECK_TEST-97c3bb611011073485fff66a143f7ef8-X"
+      PSTK_SECRET_KEY: "sk_test_44c5a588da65a1fbb63fb049f5dc7f47de2789e8"
+    volumes:
+      - ./gempire-server:/app
+      - /app/node_modules
+
+  # -------------------
+  # Frontend: Next.js
+  # -------------------
+  web:
+    build: ./gempire-client
+    container_name: gempire-web
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8000/api/v1"
+      NEXT_PUBLIC_CURRENCY: "₦"
+      NEXT_PUBLIC_EMAILJS_SERVICE_ID: "service_rjmk7t8"
+      NEXT_PUBLIC_EMAILJS_TEMPLATE_ID: "template_1puy2bl"
+      NEXT_PUBLIC_EMAILJS_PUBLIC_KEY: "HtU2y8DkWTklidEaT"
+    volumes:
+      - ./gempire-client:/app
+      - /app/node_modules
+
+  # # -------------------
+  # # pgAdmin: GUI for Postgres
+  # # -------------------
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: gempire-pgadmin
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - "5050:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@gempire.com
+  #     PGADMIN_DEFAULT_PASSWORD: secret
+  #   volumes:
+  #     - pgadmindata:/var/lib/pgadmin
+
+  # -------------------
+  # Redis Commander: GUI for Redis
+  # -------------------
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: gempire-redis-commander
+    depends_on:
+      - redis
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+
+  # -------------------
+  # Pgweb: lightweight Postgres web UI
+  # -------------------
+  # pgweb:
+  #   image: sosedoff/pgweb
+  #   container_name: gempire-pgweb
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - "8082:8081" # ⚡ mapped to 8082 locally to avoid clash
+  #   environment:
+  #     DATABASE_URL: "postgres://postgres:mypostgrespassword@db:5432/gempire?sslmode=disable"
+
+volumes:
+  gempire:
+  redisdata:
+  # pgadmindata:
+# services:
+#   web:
+#     build: ./gempire-client
+#     # volumes:
+#     #   - ./gempire-client:/app
+#     depends_on:
+#       - api
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       NEXT_PUBLIC_API_URL: "http://localhost:8000/api/v1" # ✅ Uses service name instead of localhost — perfect for Docker network
+#       NEXT_PUBLIC_CURRENCY: "₦"
+#       NEXT_PUBLIC_EMAILJS_SERVICE_ID: "service_rjmk7t8"
+#       NEXT_PUBLIC_EMAILJS_TEMPLATE_ID: "template_1puy2bl"
+#       NEXT_PUBLIC_EMAILJS_PUBLIC_KEY: "HtU2y8DkWTklidEaT"
+#     develop:
+#       watch:
+#         - path: ./gempire-client/package.json
+#           action: rebuild
+#         - path: ./gempire-client/pnpm-lock.yaml
+#           action: rebuild
+#         - path: ./next.config.js
+#           action: rebuild
+#         - path: ./gempire-client
+#           target: /src
+#           action: sync # ✅ This makes your dev experience buttery smooth
+
+#   api:
+#     build: ./gempire-server
+#     # volumes:
+#     #   - ./gempire-server:/app
+#     depends_on:
+#       - db
+#       - redis # ✅ Ensures Redis is up before API starts
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       # DATABASE_URL: "postgresql://postgres:mypostgrespassword@db:5432/gempire" # ✅ Correctly uses internal service name
+#       DATABASE_URL: "postgresql://postgres.wetdequzyexrwexmzngh:Tilewa2001@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
+#       JWT_SECRET: "gempireisthebestperfumerieandgeneralscentsbrand"
+#       CLOUDINARY_CLOUD_NAME: "dszmrtmyk"
+#       CLOUDINARY_API_KEY: "858935979931885"
+#       CLOUDINARY_API_SECRET: "9yEzvn-uMH61j-3PX0iNYgRQXIY"
+#       REDIS_HOST: redis # ✅ Host name matches redis service — perfect
+#       REDIS_PORT: "6379"
+#       REDIS_TLS: "false" # ❗ Only needed if you're forcing TLS; false is fine for local dev
+#       FLW_SECRET_KEY: "FLWSECK_TEST-97c3bb611011073485fff66a143f7ef8-X"
+#       PSTK_SECRET_KEY: "sk_test_44c5a588da65a1fbb63fb049f5dc7f47de2789e8"
+#     develop:
+#       watch:
+#         - path: ./gempire-server/package.json
+#           action: rebuild
+#         - path: ./gempire-server/pnpm-lock.yaml
+#           action: rebuild
+#         - path: ./gempire-server
+#           target: /src
+#           action: sync
+
+#   redis:
+#     image: redis # ✅ Stable and modern Redis version
+#     ports:
+#       - "6378:6379"
+#     volumes:
+#       - redisdata:/data # ✅ Persist Redis state — optional but good practice
+#     # healthcheck:  # 👈 Optional: Use this if you want graceful wait in `api`
+#     #   test: ["CMD", "redis-cli", "ping"]
+#     #   interval: 5s
+#     #   timeout: 3s
+#     #   retries: 3
+
+#   db:
+#     image: postgres
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_DB: gempire
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: mypostgrespassword
+#     volumes:
+#       - gempire:/var/lib/postgresql/data # ✅ Use correct official data path
+#     # healthcheck:  # 👈 Optional: Wait for Postgres readiness
+#     #   test: ["CMD-SHELL", "pg_isready -U postgres"]
+#     #   interval: 5s
+#     #   timeout: 3s
+#     #   retries: 5
+
+# volumes:
+#   gempire:
+#   redisdata:
