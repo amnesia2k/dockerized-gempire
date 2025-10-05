@@ -43,9 +43,13 @@ services:
   api:
     build: ./gempire-server
     container_name: gempire-api
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     depends_on:
       # - db
       - redis
+    restart: always
     ports:
       - "8000:8000"
     environment:
@@ -60,9 +64,50 @@ services:
       REDIS_TLS: "false"
       FLW_SECRET_KEY: "FLWSECK_TEST-97c3bb611011073485fff66a143f7ef8-X"
       PSTK_SECRET_KEY: "sk_test_44c5a588da65a1fbb63fb049f5dc7f47de2789e8"
+      EMAIL_HOST: "smtp.gmail.com"
+      EMAIL_PORT: "465"
+      EMAIL_SECURE: false
+      EMAIL_USER: "entertainmenthub2020@gmail.com"
+      EMAIL_PASS: "xexk zvrl yfpt eayi"
     volumes:
       - ./gempire-server:/app
       - /app/node_modules
+    command: pnpm dev
+
+  # -------------------
+  # Backend: Express / Worker
+  # -------------------
+  worker:
+    build: ./gempire-server
+    container_name: gempire-worker
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      # - db
+      - redis
+    restart: always
+    environment:
+      PORT: "8000"
+      DATABASE_URL: "postgresql://postgres.wetdequzyexrwexmzngh:Tilewa2001@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
+      JWT_SECRET: "gempireisthebestperfumerieandgeneralscentsbrand"
+      CLOUDINARY_CLOUD_NAME: "dszmrtmyk"
+      CLOUDINARY_API_KEY: "858935979931885"
+      CLOUDINARY_API_SECRET: "9yEzvn-uMH61j-3PX0iNYgRQXIY"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_TLS: "false"
+      FLW_SECRET_KEY: "FLWSECK_TEST-97c3bb611011073485fff66a143f7ef8-X"
+      PSTK_SECRET_KEY: "sk_test_44c5a588da65a1fbb63fb049f5dc7f47de2789e8"
+      EMAIL_HOST: "smtp.gmail.com"
+      EMAIL_PORT: "465"
+      EMAIL_SECURE: false
+      EMAIL_USER: "entertainmenthub2020@gmail.com"
+      EMAIL_PASS: "xexk zvrl yfpt eayi"
+    volumes:
+      - ./gempire-server:/app
+      - /app/node_modules
+    command: pnpm worker
 
   # -------------------
   # Frontend: Next.js
@@ -72,6 +117,7 @@ services:
     container_name: gempire-web
     depends_on:
       - api
+    restart: always
     ports:
       - "3000:3000"
     environment:
@@ -83,6 +129,7 @@ services:
     volumes:
       - ./gempire-client:/app
       - /app/node_modules
+    command: pnpm dev
 
   # # -------------------
   # # pgAdmin: GUI for Postgres
